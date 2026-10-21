@@ -25,6 +25,8 @@ void main() {
 
     expect(find.text('Every document,\nin one place.'), findsOneWidget);
     expect(find.byTooltip('Change language'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('docsy_language_fa_v1'), isFalse);
   });
 
   testWidgets('Theme toggle remains available in both languages', (tester) async {
@@ -36,5 +38,7 @@ void main() {
 
     expect(find.byTooltip('تغییر تم'), findsOneWidget);
     expect(find.text('docsy'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('docsy_dark_theme_v1'), isTrue);
   });
 }
