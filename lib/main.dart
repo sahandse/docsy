@@ -101,6 +101,7 @@ class _DocsyHomeState extends State<DocsyHome> {
   Future<void> openFile(DocFile f) async {
     try {
       if (!await File(f.path).exists()) { message(t('فایل پیدا نشد؛ دوباره انتخابش کن.','File not found. Please select it again.')); return; }
+      if (!mounted) return;
       if (f.ext == 'pdf') {
         await Navigator.of(context).push(MaterialPageRoute<void>(
           builder: (_) => PdfReaderScreen(path: f.path, title: f.name, fa: fa),
