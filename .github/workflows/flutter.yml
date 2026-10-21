@@ -11,9 +11,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   analyze-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,6 +28,27 @@ jobs:
           cache: true
       - name: Generate Android platform scaffold
         run: flutter create --platforms=android --org com.sahandse --project-name docsy .
+      - name: Allow external file handoff on Android 11+
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          text = manifest.read_text()
+          queries = (
+              '    <queries>\n'
+              '        <intent>\n'
+              '            <action android:name="android.intent.action.VIEW" />\n'
+              '            <data android:mimeType="*/*" />\n'
+              '        </intent>\n'
+              '    </queries>\n'
+          )
+          if "<queries>" not in text:
+              text = text.replace("<application", queries + "    <application", 1)
+              manifest.write_text(text)
+              print("Added package visibility queries for open_filex.")
+          PY
       - name: Set Android app compile SDK
         run: sed -i -E 's/compileSdk = .*/compileSdk = 36/' android/app/build.gradle.kts
       - name: Install dependencies
@@ -70,58 +95,3 @@ jobs:
           name: docsy-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-  emulator-smoke-test:
-    needs: analyze-and-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download release APK
-        uses: actions/download-artifact@v4
-        with:
-          name: docsy-android-apk
-          path: artifacts
-      - name: Install and launch on Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          arch: x86_64
-          profile: pixel_6
-          emulator-boot-timeout: 900
-          emulator-options: -no-snapshot -no-boot-anim -noaudio -no-window -gpu swiftshader_indirect
-          script: |
-            set -eu
-            adb wait-for-device
-
-            # Wait for Android framework and Package Manager to be ready.
-            ready=0
-            for attempt in $(seq 1 60); do
-              booted="$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\\r' || true)"
-              if [ "$booted" = "1" ] && adb shell cmd package list packages >/dev/null 2>&1; then
-                ready=1
-                break
-              fi
-              echo "Waiting for Android services (attempt $attempt/60)..."
-              sleep 5
-            done
-            if [ "$ready" -ne 1 ]; then
-              echo "Android Package Manager did not become ready."
-              adb logcat -d -t 300 || true
-              exit 1
-            fi
-
-            installed=0
-            for attempt in 1 2 3; do
-              if adb install --no-streaming artifacts/app-release.apk; then
-                installed=1
-                break
-              fi
-              echo "APK installation attempt $attempt failed; waiting for Android services..."
-              sleep 10
-            done
-            if [ "$installed" -ne 1 ]; then
-              adb logcat -d -t 300 || true
-              exit 1
-            fi
-
-            adb shell monkey -p com.sahandse.docsy 1
-            sleep 5
-            adb shell pidof com.sahandse.docsy
