@@ -1,33 +1,39 @@
 # Docsy
 
-Docsy is a minimal, bilingual (Persian/English) Flutter document library for Android. The interface uses a restrained monochrome palette with a warm orange accent.
+Docsy is a minimal Persian/English document library for Android, built with Flutter. Its interface uses a clean monochrome palette with a restrained orange accent.
 
-## Implemented
+## Implemented features
 
-- Pick one or multiple supported files using Android's system file picker.
-- Search filenames and filter the library by document type.
-- Store a local recent-file list on the device (no account or cloud upload).
-- Open PDFs in the app with the embedded PDF viewer.
+- Select one or multiple files with Android's system file picker.
+- Browse recent files, search filenames, and filter by file type.
+- Remove entries from the local library without deleting the source document.
+- Remember recent file paths, language choice, and light/dark theme locally.
+- View PDFs inside the app, including normal PDF viewer navigation and zoom gestures provided by the viewer.
 - Preview TXT and CSV files in-app when they are no larger than 2 MiB.
-- Open Office and other supported formats through a compatible app installed on the device.
-- Switch between Persian/RTL and English/LTR.
-- Switch between light and dark themes.
+- Hand off Office formats to compatible apps installed on the device.
+- Switch between Persian (RTL) and English (LTR).
+- Use light and dark themes.
+- No demo documents are preloaded; the library starts empty and uses files selected by the user.
 
 ## Format support
 
 | Format | Current behavior |
 |---|---|
-| PDF | In-app viewer |
+| PDF | In-app PDF viewer |
 | TXT, CSV | In-app text preview up to 2 MiB |
 | DOC, DOCX, XLS, XLSX, PPT, PPTX, RTF, ODT, ODS, ODP | Open with a compatible installed app |
 
-Docsy does not currently include a full Office rendering/editing engine. A compatible Android app is required for Office formats; availability and rendering fidelity depend on that app.
+Docsy does not currently include a full Office document rendering or editing engine. Office-format support depends on another compatible app being installed.
 
 ## Build and test
 
-Requirements: Flutter stable, Dart SDK `>=3.4.0 <4.0.0`, and Android build tooling.
+Requirements: Flutter stable, Dart SDK `>=3.4.0 <4.0.0`, Android SDK and Android build tooling.
+
+This repository generates the Android platform scaffold during GitHub Actions. To build locally from a fresh checkout, generate it first:
 
 ```sh
+flutter create --platforms=android --org com.sahandse --project-name docsy .
+# Ensure android/app/build.gradle.kts uses compileSdk = 36
 flutter pub get
 flutter analyze
 flutter test
@@ -36,17 +42,16 @@ flutter build apk --release
 
 The APK is normally generated at `build/app/outputs/flutter-apk/app-release.apk`.
 
-GitHub Actions runs analysis, widget tests, and a release APK build on pushes and pull requests. When the workflow succeeds, download the `docsy-android-apk` artifact from the run's **Artifacts** section.
+GitHub Actions checks analysis and widget tests, builds a release APK, and uploads it as the `docsy-android-apk` artifact when the workflow succeeds. Open the Actions run and download the artifact from its Artifacts section.
 
 ## Release checklist
 
-- [ ] Confirm analysis, tests, and release APK build all pass in GitHub Actions.
-- [ ] Install and test the APK on a physical Android device.
-- [ ] Verify file selection, PDF scrolling/zoom, TXT/CSV preview, external Office handoff, search, filters, language, and themes.
-- [ ] Verify behavior when a remembered file has been moved or its access has expired.
-- [ ] Set the final application ID, app icon, version, and signing configuration before store distribution.
-- [ ] Test the signed release build before publishing.
+- [ ] Confirm the latest GitHub Actions run passes analysis, tests, and release APK build.
+- [ ] Install the APK on a physical Android device and verify file selection, PDF viewing, TXT/CSV preview, external Office handoff, search, filters, delete-from-library, language, and theme persistence.
+- [ ] Verify behavior when a remembered file has moved or Android access has expired.
+- [ ] Set the final store application ID, app icon, version, and store signing configuration before publishing to an app store.
+- [ ] Produce and validate a signed store release before distribution.
 
 ## Privacy
 
-Documents are processed locally. Docsy does not upload document contents to a server. The recent-file list stores file paths on the device; a path can stop working if a source file is moved or Android no longer grants access to it.
+Documents are processed locally and are not uploaded to a Docsy server. The recent-file list stores file paths on the device, and preferences store the selected language and theme. A saved path may become unavailable if the source file is moved or Android no longer grants access to it.
