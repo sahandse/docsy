@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
+import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const DocsyApp());
@@ -100,6 +101,12 @@ class _DocsyHomeState extends State<DocsyHome> {
   Future<void> openFile(DocFile f) async {
     try {
       if (!await File(f.path).exists()) { message(t('فایل پیدا نشد؛ دوباره انتخابش کن.','File not found. Please select it again.')); return; }
+      if (f.ext == 'pdf') {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => PdfReaderScreen(path: f.path, title: f.name, fa: fa),
+        ));
+        return;
+      }
       if (['txt', 'csv'].contains(f.ext)) {
         final source = File(f.path);
         if (await source.length() <= 2 * 1024 * 1024) {
@@ -245,4 +252,45 @@ class _DocsyHomeState extends State<DocsyHome> {
       Text(value.toString().padLeft(2,'0'),style:const TextStyle(fontSize:21,fontWeight:FontWeight.w900)),
       const SizedBox(height:3),Text(title,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:11,color:widget.dark?Colors.white60:Colors.black54)),
     ]));
+
+}
+
+class PdfReaderScreen extends StatelessWidget {
+  const PdfReaderScreen({super.key, required this.path, required this.title, required this.fa});
+  final String path;
+  final String title;
+  final bool fa;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        actions: [
+          IconButton(
+            tooltip: fa ? 'اشتراک‌گذاری' : 'Share',
+            onPressed: () => OpenFilex.open(path),
+            icon: const Icon(Icons.open_in_new_rounded),
+          ),
+        ],
+      ),
+      body: PdfViewer.file(
+        path,
+        params: PdfViewerParams(
+          backgroundColor: dark ? const Color(0xFF111111) : const Color(0xFFF0F0EE),
+          loadingBannerBuilder: (context, bytesDownloaded, totalBytes) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 12),
+                Text(fa ? 'در حال بارگذاری سند…' : 'Loading document…'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
