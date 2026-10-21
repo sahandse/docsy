@@ -6,7 +6,9 @@ Docsy is a minimal Persian/English document library for Android, built with Flut
 
 - Select one or multiple files with Android's system file picker.
 - Browse recent files, search filenames, and filter by file type.
-- Copy selected documents into Docsy's private app storage so file access does not depend on a temporary picker path.\n- Remove library entries and clean up Docsy-managed copies without deleting the user's original source document.\n- Automatically drop stale library entries when their stored file is no longer available.
+- Copy selected documents into Docsy's private app storage so file access does not depend on a temporary picker path.
+- Remove library entries and clean up Docsy-managed copies without deleting the user's original source document.
+- Automatically drop stale library entries when their stored file is no longer available.
 - Remember recent file paths, language choice, and light/dark theme locally.
 - View PDFs inside the app, including normal PDF viewer navigation and zoom gestures provided by the viewer.
 - Preview TXT and CSV files in-app when they are no larger than 2 MiB.
@@ -49,7 +51,8 @@ GitHub Actions checks analysis and widget tests, builds a release APK, and uploa
 - [ ] Confirm the latest GitHub Actions run passes analysis, tests, and release APK build.
 - [ ] Install the APK on a physical Android device and verify file selection, PDF viewing, TXT/CSV preview, external Office handoff, search, filters, delete-from-library, language, and theme persistence.
 - [ ] Verify behavior when a remembered file has moved or Android access has expired.
-- [ ] Confirm the generated minimalist orange-and-black launcher icon on a physical Android device.\n- [ ] Set the final store application ID, version, and store signing configuration before publishing to an app store.
+- [ ] Confirm the generated minimalist orange-and-black launcher icon on a physical Android device.
+- [ ] Set the final store application ID, version, and store signing configuration before publishing to an app store.
 - [ ] Produce and validate a signed store release before distribution.
 
 ## Privacy
