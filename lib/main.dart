@@ -79,6 +79,32 @@ class DocFile {
   factory DocFile.fromJson(Map<String,dynamic> j) => DocFile(j['path'] as String? ?? '', j['name'] as String? ?? 'Document', j['ext'] as String? ?? '', j['added'] as int? ?? 0);
 }
 
+String? decodeTextBytes(List<int> bytes) {
+  if (bytes.length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
+    return _decodeUtf16(bytes.sublist(2), littleEndian: true);
+  }
+  if (bytes.length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
+    return _decodeUtf16(bytes.sublist(2), littleEndian: false);
+  }
+  try {
+    final text = utf8.decode(bytes);
+    return text.startsWith('\uFEFF') ? text.substring(1) : text;
+  } on FormatException {
+    return null;
+  }
+}
+
+String? _decodeUtf16(List<int> bytes, {required bool littleEndian}) {
+  if (bytes.length.isOdd) return null;
+  final units = List<int>.generate(bytes.length ~/ 2, (index) {
+    final low = littleEndian ? bytes[index * 2] : bytes[index * 2 + 1];
+    final high = littleEndian ? bytes[index * 2 + 1] : bytes[index * 2];
+    return (high << 8) | low;
+  });
+  final text = String.fromCharCodes(units);
+  return text.startsWith('\uFEFF') ? text.substring(1) : text;
+}
+
 class DocsyHome extends StatefulWidget {
   const DocsyHome({super.key, required this.fa, required this.dark, required this.toggleLanguage, required this.toggleTheme});
   final bool fa, dark;
@@ -91,6 +117,7 @@ class _DocsyHomeState extends State<DocsyHome> {
   List<DocFile> files = [];
   String query = '', filter = 'all';
   bool loading = true;
+  bool picking = false;
   bool get fa => widget.fa;
   String t(String f, String e) => fa ? f : e;
   static const extensions = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','rtf','csv','odt','ods','odp'];
@@ -134,6 +161,30 @@ class _DocsyHomeState extends State<DocsyHome> {
     await prefs.setString(storageKey, jsonEncode(files.map((f) => f.toJson()).toList()));
   }
 
+  Future<void> confirmRemove(DocFile file) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t('حذف از کتابخانه', 'Remove from library')),
+        content: Text(t(
+          '«${file.name}» از کتابخانه حذف شود؟ نسخه ذخیره‌شده در Docsy پاک می‌شود، اما فایل اصلی تو دست‌نخورده می‌ماند.',
+          'Remove “${file.name}” from your library? Docsy’s stored copy will be deleted, but your original file stays untouched.',
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(t('انصراف', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(t('حذف', 'Remove')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await removeFile(file);
+  }
+
   Future<void> removeFile(DocFile file) async {
     setState(() => files.removeWhere((item) => item.path == file.path));
     await saveFiles();
@@ -159,6 +210,8 @@ class _DocsyHomeState extends State<DocsyHome> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating));
   }
   Future<void> pickFiles() async {
+    if (picking) return;
+    setState(() => picking = true);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -251,6 +304,8 @@ class _DocsyHomeState extends State<DocsyHome> {
         'انتخاب فایل انجام نشد. دوباره تلاش کن؛ اگر مشکل ادامه داشت، فایل دیگری را امتحان کن.',
         'File selection failed. Please try again, or choose a different file if the issue persists.',
       ));
+    } finally {
+      if (mounted) setState(() => picking = false);
     }
   }
   Future<void> openFile(DocFile f) async {
@@ -268,27 +323,29 @@ class _DocsyHomeState extends State<DocsyHome> {
         final sourceLength = await source.length();
         if (!mounted) return;
         if (sourceLength <= 2 * 1024 * 1024) {
-          final text = await source.readAsString();
+          final text = decodeTextBytes(await source.readAsBytes());
           if (!mounted) return;
-          await showDialog<void>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: SelectableText(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.45)),
+          if (text != null) {
+            await showDialog<void>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: SingleChildScrollView(
+                    child: SelectableText(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.45)),
+                  ),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: Text(t('بستن', 'Close')),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(t('بستن', 'Close')),
-                ),
-              ],
-            ),
-          );
-          return;
+            );
+            return;
+          }
         }
       }
       final result = await OpenFilex.open(f.path);
@@ -350,20 +407,20 @@ class _DocsyHomeState extends State<DocsyHome> {
           IconButton(onPressed:widget.toggleTheme,tooltip:t('تغییر تم','Toggle theme'),icon:Icon(widget.dark?Icons.light_mode_rounded:Icons.dark_mode_rounded)),
           const SizedBox(width:8),
         ]),
-        floatingActionButton: FloatingActionButton.extended(onPressed:pickFiles,
+        floatingActionButton: FloatingActionButton.extended(onPressed:picking?null:pickFiles,
           backgroundColor:widget.dark?Colors.white:const Color(0xFF171717),foregroundColor:widget.dark?Colors.black:Colors.white,
           icon:const Icon(Icons.add_rounded),label:Text(t('افزودن فایل','Add files'),style:const TextStyle(fontWeight:FontWeight.w700))),
-        body: SafeArea(child: RefreshIndicator(onRefresh:loadFiles,child:ListView(padding:const EdgeInsets.fromLTRB(20,12,20,32),children:[
+        body: SafeArea(child: RefreshIndicator(onRefresh:loadFiles,child:ListView(padding:const EdgeInsets.fromLTRB(20,12,20,32),physics:const AlwaysScrollableScrollPhysics(),children:[
           Text(t('همه اسنادت،\nیک‌جا و مرتب.','Every document,\nin one place.'),style:theme.textTheme.headlineMedium?.copyWith(fontWeight:FontWeight.w900,height:1.12,letterSpacing:-1.1)),
           const SizedBox(height:10), Text(t('فضایی ساده برای فایل‌های روزمره‌ات.','A calmer way to access your everyday files.'),style:theme.textTheme.bodyMedium?.copyWith(color:muted)),
           const SizedBox(height:22),
           Material(color:widget.dark?const Color(0xFF242424):const Color(0xFF171717),borderRadius:BorderRadius.circular(24),
-            child:InkWell(onTap:pickFiles,borderRadius:BorderRadius.circular(24),child:Padding(padding:const EdgeInsets.all(20),child:Row(children:[
+            child:InkWell(onTap:picking?null:pickFiles,borderRadius:BorderRadius.circular(24),child:Padding(padding:const EdgeInsets.all(20),child:Row(children:[
               Container(width:54,height:62,decoration:BoxDecoration(color:Colors.white.withValues(alpha: .09),borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.drive_folder_upload_rounded,color:Color(0xFFFFA56D),size:28)),
               const SizedBox(width:15),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 Text(t('فایل جدید باز کن','Open a new file'),style:const TextStyle(color:Colors.white,fontSize:17,fontWeight:FontWeight.w800)),
                 const SizedBox(height:5),Text(t('PDF، Word، Excel و بیشتر','PDF, Word, Excel & more'),style:TextStyle(color:Colors.white.withValues(alpha: .65),fontSize:12)),
-              ])),const Icon(Icons.arrow_forward_rounded,color:Colors.white),
+              ])),Icon(fa?Icons.arrow_back_rounded:Icons.arrow_forward_rounded,color:Colors.white),
             ])))),
           const SizedBox(height:24), Row(children:[
             Expanded(child:Text(t('کتابخانه','Your library'),style:theme.textTheme.titleLarge?.copyWith(fontWeight:FontWeight.w900))),
@@ -379,8 +436,9 @@ class _DocsyHomeState extends State<DocsyHome> {
           ])),
           const SizedBox(height:16),
           if(loading) const Padding(padding:EdgeInsets.all(32),child:Center(child:CircularProgressIndicator()))
-          else if(docs.isEmpty) emptyState()
-          else for(final f in docs) Padding(padding:const EdgeInsets.only(bottom:10),child:documentRow(f,muted)),
+          else if(docs.isNotEmpty) for(final f in docs) Padding(padding:const EdgeInsets.only(bottom:10),child:documentRow(f,muted))
+          else if(files.isEmpty) emptyState()
+          else noResultsState(),
           const SizedBox(height:14), Row(children:[
             Expanded(child:statCard('PDF',count(['pdf']),Icons.picture_as_pdf_rounded,const Color(0xFFE45B55))),
             const SizedBox(width:10),Expanded(child:statCard(t('متنی','Text'),count(['doc','docx','odt','rtf','txt']),Icons.article_rounded,const Color(0xFF4D86E8))),
@@ -402,7 +460,7 @@ class _DocsyHomeState extends State<DocsyHome> {
         ])),
         IconButton(
           tooltip: t('حذف از کتابخانه', 'Remove from library'),
-          onPressed: () => removeFile(f),
+          onPressed: () => confirmRemove(f),
           icon: Icon(Icons.close_rounded, color: muted, size: 19),
         ),
       ]))));
@@ -415,7 +473,18 @@ class _DocsyHomeState extends State<DocsyHome> {
       const SizedBox(height:14),Text(t('هنوز فایلی اینجا نیست','Nothing here yet'),style:const TextStyle(fontWeight:FontWeight.w900,fontSize:16)),
       const SizedBox(height:7),Text(t('اولین سندت را انتخاب کن تا اینجا نمایش داده شود.','Choose your first document and it will appear here.'),
         textAlign:TextAlign.center,style:TextStyle(color:widget.dark?Colors.white60:Colors.black54,height:1.5,fontSize:12)),
-      const SizedBox(height:16),OutlinedButton.icon(onPressed:pickFiles,icon:const Icon(Icons.add_rounded),label:Text(t('انتخاب فایل','Choose a file'))),
+      const SizedBox(height:16),OutlinedButton.icon(onPressed:picking?null:pickFiles,icon:const Icon(Icons.add_rounded),label:Text(t('انتخاب فایل','Choose a file'))),
+    ]));
+  Widget noResultsState() => Container(padding:const EdgeInsets.symmetric(horizontal:22,vertical:30),
+    decoration:BoxDecoration(color:Theme.of(context).cardColor,borderRadius:BorderRadius.circular(22)),
+    child:Column(children:[
+      const Icon(Icons.search_off_rounded,size:32,color:Color(0xFFFF8A3D)),
+      const SizedBox(height:14),Text(t('نتیجه‌ای پیدا نشد','No matching documents'),style:const TextStyle(fontWeight:FontWeight.w900,fontSize:16)),
+      const SizedBox(height:7),Text(t('عبارت جست‌وجو یا فیلتر را تغییر بده.','Try a different search term or filter.'),
+        textAlign:TextAlign.center,style:TextStyle(color:widget.dark?Colors.white60:Colors.black54,height:1.5,fontSize:12)),
+      const SizedBox(height:16),OutlinedButton.icon(
+        onPressed:(){search.clear();setState((){query='';filter='all';});},
+        icon:const Icon(Icons.restart_alt_rounded),label:Text(t('پاک‌کردن فیلترها','Clear filters'))),
     ]));
   Widget statCard(String title,int value,IconData icon,Color color) => Container(padding:const EdgeInsets.all(13),
     decoration:BoxDecoration(color:Theme.of(context).cardColor,borderRadius:BorderRadius.circular(18)),

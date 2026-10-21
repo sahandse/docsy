@@ -7,11 +7,11 @@ Docsy is a minimal Persian/English document library for Android, built with Flut
 - Select one or multiple files with Android's system file picker.
 - Browse recent files, search filenames, and filter by file type.
 - Copy selected documents into Docsy's private app storage so file access does not depend on a temporary picker path.
-- Remove library entries and clean up Docsy-managed copies without deleting the user's original source document.
+- Remove library entries after a confirmation prompt, cleaning up Docsy-managed copies without deleting the user's original source document.
 - Automatically drop stale library entries when their stored file is no longer available.
 - Remember recent file paths, language choice, and light/dark theme locally.
 - View PDFs inside the app, including normal PDF viewer navigation and zoom gestures provided by the viewer.
-- Preview TXT and CSV files in-app when they are no larger than 2 MiB.
+- Preview TXT and CSV files in-app when they are no larger than 2 MiB and use UTF-8 or BOM-marked UTF-16; other encodings are handed off to another app.
 - Hand off Office formats to compatible apps installed on the device.
 - Switch between Persian (RTL) and English (LTR).
 - Use light and dark themes.
@@ -22,7 +22,7 @@ Docsy is a minimal Persian/English document library for Android, built with Flut
 | Format | Current behavior |
 |---|---|
 | PDF | In-app PDF viewer |
-| TXT, CSV | In-app text preview up to 2 MiB |
+| TXT, CSV | In-app text preview up to 2 MiB for UTF-8/UTF-16 text; other encodings open in another app |
 | DOC, DOCX, XLS, XLSX, PPT, PPTX, RTF, ODT, ODS, ODP | Open with a compatible installed app |
 
 Docsy does not currently include a full Office document rendering or editing engine. Office-format support depends on another compatible app being installed.
@@ -47,7 +47,18 @@ flutter build apk --release
 
 The APK is normally generated at `build/app/outputs/flutter-apk/app-release.apk`.
 
-GitHub Actions checks analysis and widget tests, builds a release APK, uploads it as the `docsy-android-apk` artifact, and installs/launches the APK in an Android emulator smoke test when the workflow succeeds. Open the Actions run and download the artifact from its Artifacts section.
+The CI workflow adds the following block to the generated `android/app/src/main/AndroidManifest.xml` so Android 11+ can discover installed apps for Office handoff. Add it yourself when building locally:
+
+```xml
+<queries>
+  <intent>
+    <action android:name="android.intent.action.VIEW" />
+    <data android:mimeType="*/*" />
+  </intent>
+</queries>
+```
+
+GitHub Actions checks analysis and widget tests, builds a release APK, and uploads it as the `docsy-android-apk` artifact. Open the Actions run and download the artifact from its Artifacts section. Emulator and device checks are not part of CI; use the release checklist below for those.
 
 ## Release checklist
 
