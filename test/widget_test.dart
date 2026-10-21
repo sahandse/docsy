@@ -12,6 +12,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('docsy'), findsOneWidget);
+    expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
+    expect(find.text('BETA'), findsNothing);
+    expect(find.byTooltip('تغییر تم'), findsOneWidget);
     expect(find.text('همه اسنادت،\nیک‌جا و مرتب.'), findsOneWidget);
   });
 
