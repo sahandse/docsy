@@ -7,13 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> seedLibraryFile() async {
-  final directory = await Directory.systemTemp.createTemp('docsy_test');
-  addTearDown(() async {
-    await directory.delete(recursive: true);
+void seedLibraryFile() {
+  // Synchronous I/O only: real async file work never completes inside a
+  // testWidgets fake-async zone unless it is wrapped in tester.runAsync.
+  final directory = Directory.systemTemp.createTempSync('docsy_test');
+  addTearDown(() {
+    if (directory.existsSync()) directory.deleteSync(recursive: true);
   });
   final file = File(p.join(directory.path, 'report.pdf'));
-  await file.writeAsBytes(const [0x25, 0x50, 0x44, 0x46]);
+  file.writeAsBytesSync(const [0x25, 0x50, 0x44, 0x46]);
   SharedPreferences.setMockInitialValues({
     'docsy_recent_v1': jsonEncode([
       {'path': file.path, 'name': 'report.pdf', 'ext': 'pdf', 'added': 1},
@@ -86,7 +88,7 @@ void main() {
   });
 
   testWidgets('Search without matches shows a no-results state', (tester) async {
-    await seedLibraryFile();
+    seedLibraryFile();
     await tester.pumpWidget(const DocsyApp());
     await tester.pumpAndSettle();
 
@@ -100,7 +102,7 @@ void main() {
   });
 
   testWidgets('Removing a document requires confirmation', (tester) async {
-    await seedLibraryFile();
+    seedLibraryFile();
     await tester.pumpWidget(const DocsyApp());
     await tester.pumpAndSettle();
 
