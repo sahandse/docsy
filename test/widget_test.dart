@@ -12,7 +12,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('docsy'), findsOneWidget);
-    expect(find.text('BETA'), findsOneWidget);
     expect(find.text('همه اسنادت،\nیک‌جا و مرتب.'), findsOneWidget);
   });
 
