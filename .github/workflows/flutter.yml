@@ -50,7 +50,7 @@ jobs:
           changed = []
           for path in root.glob("*/android/build.gradle*"):
               original = path.read_text()
-              updated = pattern.sub(r"\\g<1>36\\g<2>", original)
+              updated = pattern.sub(lambda match: f"{match.group(1)}36{match.group(2)}", original)
               if updated != original:
                   path.write_text(updated)
                   changed.append(str(path))
