@@ -100,6 +100,32 @@ class _DocsyHomeState extends State<DocsyHome> {
   Future<void> openFile(DocFile f) async {
     try {
       if (!await File(f.path).exists()) { message(t('فایل پیدا نشد؛ دوباره انتخابش کن.','File not found. Please select it again.')); return; }
+      if (['txt', 'csv'].contains(f.ext)) {
+        final source = File(f.path);
+        if (await source.length() <= 2 * 1024 * 1024) {
+          final text = await source.readAsString();
+          if (!mounted) return;
+          await showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(f.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: SelectableText(text, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, height: 1.45)),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(t('بستن', 'Close')),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+      }
       final result = await OpenFilex.open(f.path);
       if (result.type != ResultType.done) message(t('برنامه سازگار برای بازکردن فایل پیدا نشد.','No compatible app was found to open this file.'));
     } catch (_) { message(t('بازکردن فایل ناموفق بود.','Could not open this file.')); }
