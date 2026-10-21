@@ -37,15 +37,15 @@ jobs:
 
           root = Path.home() / ".pub-cache" / "hosted" / "pub.dev"
           pattern = re.compile(
-              r"^([ \\t]*compileSdk(?:Version)?[ \\t]*(?:=[ \\t]*)?)"
-              r"(?:flutter\\.compileSdkVersion|[0-9]+)"
-              r"([ \\t]*(?://.*)?[ \\t]*)$",
+              r"^([ \t]*compileSdk(?:Version)?[ \t]*(?:=[ \t]*)?)"
+              r"(?:flutter\.compileSdkVersion|[0-9]+)"
+              r"([ \t]*(?://.*)?[ \t]*)$",
               re.MULTILINE,
           )
           changed = []
           for path in root.glob("*/android/build.gradle*"):
               original = path.read_text()
-              updated = pattern.sub(r"\\g<1>36\\g<2>", original)
+              updated = pattern.sub(r"\g<1>36\g<2>", original)
               if updated != original:
                   path.write_text(updated)
                   changed.append(str(path))
