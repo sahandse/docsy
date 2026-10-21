@@ -15,8 +15,38 @@ class DocsyApp extends StatefulWidget {
   @override State<DocsyApp> createState() => _DocsyAppState();
 }
 class _DocsyAppState extends State<DocsyApp> {
+  static const _languageKey = 'docsy_language_fa_v1';
+  static const _themeKey = 'docsy_dark_theme_v1';
   ThemeMode mode = ThemeMode.light;
   bool fa = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      fa = prefs.getBool(_languageKey) ?? true;
+      mode = (prefs.getBool(_themeKey) ?? false) ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
+
+  Future<void> _toggleLanguage() async {
+    setState(() => fa = !fa);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_languageKey, fa);
+  }
+
+  Future<void> _toggleTheme() async {
+    setState(() => mode = mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_themeKey, mode == ThemeMode.dark);
+  }
+
   @override Widget build(BuildContext context) {
     const accent = Color(0xFFFF8A3D);
     ThemeData makeTheme(bool dark) => ThemeData(
@@ -34,8 +64,8 @@ class _DocsyAppState extends State<DocsyApp> {
       locale: Locale(fa ? 'fa' : 'en'), supportedLocales: const [Locale('fa'), Locale('en')],
       localizationsDelegates: const [GlobalMaterialLocalizations.delegate, GlobalWidgetsLocalizations.delegate, GlobalCupertinoLocalizations.delegate],
       home: DocsyHome(fa: fa, dark: mode == ThemeMode.dark,
-        toggleLanguage: () => setState(() => fa = !fa),
-        toggleTheme: () => setState(() => mode = mode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light)),
+        toggleLanguage: _toggleLanguage,
+        toggleTheme: _toggleTheme),
     );
   }
 }
