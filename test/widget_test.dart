@@ -43,4 +43,19 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('docsy_dark_theme_v1'), isTrue);
   });
+  testWidgets('Search field and file type filters remain usable on empty library', (tester) async {
+    await tester.pumpWidget(const DocsyApp());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'report');
+    await tester.pumpAndSettle();
+
+    expect(find.text('report'), findsOneWidget);
+    expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
+
+    await tester.tap(find.text('PDF'));
+    await tester.pumpAndSettle();
+    expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
+  });
+
 }
