@@ -109,7 +109,9 @@ class _DocsyHomeState extends State<DocsyHome> {
       }
       if (['txt', 'csv'].contains(f.ext)) {
         final source = File(f.path);
-        if (await source.length() <= 2 * 1024 * 1024) {
+        final sourceLength = await source.length();
+        if (!mounted) return;
+        if (sourceLength <= 2 * 1024 * 1024) {
           final text = await source.readAsString();
           if (!mounted) return;
           await showDialog<void>(
@@ -269,7 +271,7 @@ class PdfReaderScreen extends StatelessWidget {
         title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
-            tooltip: fa ? 'اشتراک‌گذاری' : 'Share',
+            tooltip: fa ? 'بازکردن با برنامه دیگر' : 'Open with another app',
             onPressed: () => OpenFilex.open(path),
             icon: const Icon(Icons.open_in_new_rounded),
           ),
