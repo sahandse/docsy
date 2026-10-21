@@ -53,7 +53,7 @@ void main() {
     expect(find.text('report'), findsOneWidget);
     expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
 
-    await tester.tap(find.text('PDF'));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'PDF'));
     await tester.pumpAndSettle();
     expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
   });
