@@ -291,7 +291,7 @@ class _DocsyHomeState extends State<DocsyHome> {
             : t('برنامه سازگار برای بازکردن این فایل پیدا نشد.',
                 'No compatible app was found to open this file.'));
       }
-    } catch (error) {
+    } catch (_) {
       message(t(
         'بازکردن فایل ناموفق بود. فایل را بررسی کن و دوباره تلاش کن.',
         'Could not open the file. Check the file and try again.',
