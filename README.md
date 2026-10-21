@@ -47,7 +47,7 @@ flutter build apk --release
 
 The APK is normally generated at `build/app/outputs/flutter-apk/app-release.apk`.
 
-GitHub Actions checks analysis and widget tests, builds a release APK, and uploads it as the `docsy-android-apk` artifact when the workflow succeeds. Open the Actions run and download the artifact from its Artifacts section.
+GitHub Actions checks analysis and widget tests, builds a release APK, uploads it as the `docsy-android-apk` artifact, and installs/launches the APK in an Android emulator smoke test when the workflow succeeds. Open the Actions run and download the artifact from its Artifacts section.
 
 ## Release checklist
 
