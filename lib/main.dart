@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -164,6 +165,7 @@ class _DocsyHomeState extends State<DocsyHome> {
         type: FileType.custom,
         allowedExtensions: extensions,
         allowMultiple: true,
+        withData: true,
         withReadStream: true,
       );
       if (result == null) return;
@@ -191,9 +193,12 @@ class _DocsyHomeState extends State<DocsyHome> {
               await for (final chunk in file.readStream!) {
                 sink.add(chunk);
               }
+              await sink.flush();
             } finally {
               await sink.close();
             }
+          } else if (file.bytes != null) {
+            await destination.writeAsBytes(file.bytes!, flush: true);
           } else {
             failed++;
             continue;
@@ -205,7 +210,9 @@ class _DocsyHomeState extends State<DocsyHome> {
             p.extension(name).replaceFirst('.', '').toLowerCase(),
             DateTime.now().millisecondsSinceEpoch,
           ));
-        } catch (_) {
+        } catch (error, stackTrace) {
+          debugPrint('Docsy: failed to copy picked file "${file.name}": $error');
+          debugPrintStack(stackTrace: stackTrace);
           failed++;
           if (await destination.exists()) {
             await destination.delete();
@@ -237,10 +244,13 @@ class _DocsyHomeState extends State<DocsyHome> {
                 '${picked.length} files added; $failed could not be read.')
             : t('فایل‌ها به کتابخانه اضافه شدند.', 'Files added to your library.'));
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Docsy: file picker flow failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
       message(t(
-        'انتخاب یا خواندن فایل ناموفق بود.',
-        'Could not select or read the files.',
+        'انتخاب فایل انجام نشد. دوباره تلاش کن؛ اگر مشکل ادامه داشت، فایل دیگری را امتحان کن.',
+        'File selection failed. Please try again, or choose a different file if the issue persists.',
       ));
     }
   }
