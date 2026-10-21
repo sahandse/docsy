@@ -82,11 +82,11 @@ jobs:
       - name: Install and launch on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 35
           arch: x86_64
           profile: pixel_6
           emulator-boot-timeout: 900
-          emulator-options: -no-snapshot -no-boot-anim -noaudio
+          emulator-options: -no-snapshot -no-boot-anim -noaudio -no-window -gpu swiftshader_indirect
           script: |
             set -eu
             adb wait-for-device
