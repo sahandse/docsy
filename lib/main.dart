@@ -215,9 +215,6 @@ class _DocsyHomeState extends State<DocsyHome> {
           Container(width:38,height:38,decoration:BoxDecoration(color:widget.dark?Colors.white:const Color(0xFF171717),borderRadius:BorderRadius.circular(12)),
             child:Icon(Icons.description_rounded,color:widget.dark?Colors.black:Colors.white,size:22)),
           const SizedBox(width:10), const Text('docsy',style:TextStyle(fontWeight:FontWeight.w900,letterSpacing:-.8)),
-          const SizedBox(width:7), Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:3),
-            decoration:BoxDecoration(color:const Color(0xFFFF8A3D).withValues(alpha: .15),borderRadius:BorderRadius.circular(7)),
-            child:const Text('BETA',style:TextStyle(fontSize:9,color:Color(0xFFFF8A3D),fontWeight:FontWeight.w800))),
         ]), actions: [
           IconButton(onPressed:widget.toggleLanguage,tooltip:t('تغییر زبان','Change language'),icon:const Icon(Icons.translate_rounded)),
           IconButton(onPressed:widget.toggleTheme,tooltip:t('تغییر تم','Toggle theme'),icon:Icon(widget.dark?Icons.light_mode_rounded:Icons.dark_mode_rounded)),
@@ -246,7 +243,7 @@ class _DocsyHomeState extends State<DocsyHome> {
             decoration:InputDecoration(hintText:t('جست‌وجوی نام فایل...','Search documents...'),prefixIcon:const Icon(Icons.search_rounded),
               suffixIcon:query.isEmpty?null:IconButton(onPressed:(){search.clear();setState(()=>query='');},icon:const Icon(Icons.close_rounded)))),
           const SizedBox(height:13), SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[
-            for(final entry in <String,String>{'all':t('همه','All'),'pdf':'PDF','word':t('متن','Word'),'sheet':t('جدول','Sheets'),'slides':t('ارائه','Slides')}.entries)
+            for(final entry in <String,String>{'all':t('همه','All'),'pdf':'PDF','word':t('متن','Text'),'sheet':t('جدول','Sheets'),'slides':t('ارائه','Slides')}.entries)
               Padding(padding:const EdgeInsetsDirectional.only(end:8),child:ChoiceChip(label:Text(entry.value),selected:filter==entry.key,showCheckmark:false,side:BorderSide.none,
                 onSelected:(_)=>setState(()=>filter=entry.key),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12)))),
           ])),
@@ -256,7 +253,7 @@ class _DocsyHomeState extends State<DocsyHome> {
           else for(final f in docs) Padding(padding:const EdgeInsets.only(bottom:10),child:documentRow(f,muted)),
           const SizedBox(height:14), Row(children:[
             Expanded(child:statCard('PDF',count(['pdf']),Icons.picture_as_pdf_rounded,const Color(0xFFE45B55))),
-            const SizedBox(width:10),Expanded(child:statCard(t('متنی','Word'),count(['doc','docx','odt','rtf','txt']),Icons.article_rounded,const Color(0xFF4D86E8))),
+            const SizedBox(width:10),Expanded(child:statCard(t('متنی','Text'),count(['doc','docx','odt','rtf','txt']),Icons.article_rounded,const Color(0xFF4D86E8))),
             const SizedBox(width:10),Expanded(child:statCard(t('جدولی','Sheets'),count(['xls','xlsx','csv','ods']),Icons.grid_on_rounded,const Color(0xFF35A875))),
           ]),
           const SizedBox(height:24),Center(child:Text(t('ساخته‌شده برای سادگی.','Made for clarity.'),style:theme.textTheme.labelSmall?.copyWith(color:muted))),
