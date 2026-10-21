@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -122,18 +123,89 @@ class _DocsyHomeState extends State<DocsyHome> {
   }
   Future<void> pickFiles() async {
     try {
-      final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: extensions, allowMultiple: true);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: extensions,
+        allowMultiple: true,
+        withReadStream: true,
+      );
       if (result == null) return;
+
+      // Keep an app-owned copy instead of depending on a temporary picker path
+      // or a content URI whose access may expire after the picker closes.
+      final appDirectory = await getApplicationDocumentsDirectory();
+      final libraryDirectory = Directory(p.join(appDirectory.path, 'documents'));
+      await libraryDirectory.create(recursive: true);
+
       final picked = <DocFile>[];
-      for (final f in result.files) {
-        if (f.path == null) continue;
-        picked.add(DocFile(f.path!, f.name, p.extension(f.name).replaceFirst('.', '').toLowerCase(), DateTime.now().millisecondsSinceEpoch));
+      var failed = 0;
+      for (var i = 0; i < result.files.length; i++) {
+        final file = result.files[i];
+        final name = p.basename(file.name);
+        final stamp = DateTime.now().microsecondsSinceEpoch;
+        final destination = File(p.join(libraryDirectory.path, '${stamp}_${i}_$name'));
+        try {
+          final sourcePath = file.path;
+          if (sourcePath != null && await File(sourcePath).exists()) {
+            await File(sourcePath).copy(destination.path);
+          } else if (file.readStream != null) {
+            final sink = destination.openWrite();
+            try {
+              await for (final chunk in file.readStream!) {
+                sink.add(chunk);
+              }
+            } finally {
+              await sink.close();
+            }
+          } else {
+            failed++;
+            continue;
+          }
+
+          picked.add(DocFile(
+            destination.path,
+            name,
+            p.extension(name).replaceFirst('.', '').toLowerCase(),
+            DateTime.now().millisecondsSinceEpoch,
+          ));
+        } catch (_) {
+          failed++;
+          if (await destination.exists()) {
+            await destination.delete();
+          }
+        }
       }
-      if (picked.isEmpty) { message(t('مسیر فایل در دسترس نیست.','File path is unavailable.')); return; }
-      setState(() { for (final f in picked.reversed) { files.removeWhere((old) => old.path == f.path); files.insert(0, f); } });
+
+      if (picked.isEmpty) {
+        message(t(
+          'خواندن فایل انتخاب‌شده ممکن نشد. دوباره انتخابش کن.',
+          'Could not read the selected file. Please choose it again.',
+        ));
+        return;
+      }
+
+      setState(() {
+        for (final file in picked.reversed) {
+          files.removeWhere((old) => old.path == file.path);
+          files.insert(0, file);
+        }
+      });
       await saveFiles();
-      if (picked.length == 1) { await openFile(picked.first); } else { message(t('فایل‌ها به کتابخانه اضافه شدند.','Files added to your library.')); }
-    } catch (_) { message(t('انتخاب فایل ناموفق بود.','Could not select files.')); }
+
+      if (picked.length == 1) {
+        await openFile(picked.first);
+      } else {
+        message(failed > 0
+            ? t('${picked.length} فایل اضافه شد؛ $failed فایل خوانده نشد.',
+                '${picked.length} files added; $failed could not be read.')
+            : t('فایل‌ها به کتابخانه اضافه شدند.', 'Files added to your library.'));
+      }
+    } catch (_) {
+      message(t(
+        'انتخاب یا خواندن فایل ناموفق بود.',
+        'Could not select or read the files.',
+      ));
+    }
   }
   Future<void> openFile(DocFile f) async {
     try {
