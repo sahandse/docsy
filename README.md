@@ -6,7 +6,7 @@ Docsy is a minimal Persian/English document library for Android, built with Flut
 
 - Select one or multiple files with Android's system file picker.
 - Browse recent files, search filenames, and filter by file type.
-- Remove entries from the local library without deleting the source document.
+- Copy selected documents into Docsy's private app storage so file access does not depend on a temporary picker path.\n- Remove library entries and clean up Docsy-managed copies without deleting the user's original source document.\n- Automatically drop stale library entries when their stored file is no longer available.
 - Remember recent file paths, language choice, and light/dark theme locally.
 - View PDFs inside the app, including normal PDF viewer navigation and zoom gestures provided by the viewer.
 - Preview TXT and CSV files in-app when they are no larger than 2 MiB.
@@ -49,9 +49,9 @@ GitHub Actions checks analysis and widget tests, builds a release APK, and uploa
 - [ ] Confirm the latest GitHub Actions run passes analysis, tests, and release APK build.
 - [ ] Install the APK on a physical Android device and verify file selection, PDF viewing, TXT/CSV preview, external Office handoff, search, filters, delete-from-library, language, and theme persistence.
 - [ ] Verify behavior when a remembered file has moved or Android access has expired.
-- [ ] Set the final store application ID, app icon, version, and store signing configuration before publishing to an app store.
+- [ ] Confirm the generated minimalist orange-and-black launcher icon on a physical Android device.\n- [ ] Set the final store application ID, version, and store signing configuration before publishing to an app store.
 - [ ] Produce and validate a signed store release before distribution.
 
 ## Privacy
 
-Documents are processed locally and are not uploaded to a Docsy server. The recent-file list stores file paths on the device, and preferences store the selected language and theme. A saved path may become unavailable if the source file is moved or Android no longer grants access to it.
+Documents are processed locally and are not uploaded to a Docsy server. Files selected for the library are copied into Docsy's private app storage; removing a library entry deletes that private copy when possible, but does not delete the original file. The recent-file list stores app-private paths, and preferences store the selected language and theme. Uninstalling the app removes its private copies.
