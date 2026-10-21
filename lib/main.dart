@@ -169,7 +169,7 @@ class _DocsyHomeState extends State<DocsyHome> {
             child:Icon(Icons.description_rounded,color:widget.dark?Colors.black:Colors.white,size:22)),
           const SizedBox(width:10), const Text('docsy',style:TextStyle(fontWeight:FontWeight.w900,letterSpacing:-.8)),
           const SizedBox(width:7), Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:3),
-            decoration:BoxDecoration(color:const Color(0xFFFF8A3D).withOpacity(.15),borderRadius:BorderRadius.circular(7)),
+            decoration:BoxDecoration(color:const Color(0xFFFF8A3D).withValues(alpha: .15),borderRadius:BorderRadius.circular(7)),
             child:const Text('BETA',style:TextStyle(fontSize:9,color:Color(0xFFFF8A3D),fontWeight:FontWeight.w800))),
         ]), actions: [
           IconButton(onPressed:widget.toggleLanguage,tooltip:t('تغییر زبان','Change language'),icon:const Icon(Icons.translate_rounded)),
@@ -185,10 +185,10 @@ class _DocsyHomeState extends State<DocsyHome> {
           const SizedBox(height:22),
           Material(color:widget.dark?const Color(0xFF242424):const Color(0xFF171717),borderRadius:BorderRadius.circular(24),
             child:InkWell(onTap:pickFiles,borderRadius:BorderRadius.circular(24),child:Padding(padding:const EdgeInsets.all(20),child:Row(children:[
-              Container(width:54,height:62,decoration:BoxDecoration(color:Colors.white.withOpacity(.09),borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.drive_folder_upload_rounded,color:Color(0xFFFFA56D),size:28)),
+              Container(width:54,height:62,decoration:BoxDecoration(color:Colors.white.withValues(alpha: .09),borderRadius:BorderRadius.circular(15)),child:const Icon(Icons.drive_folder_upload_rounded,color:Color(0xFFFFA56D),size:28)),
               const SizedBox(width:15),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
                 Text(t('فایل جدید باز کن','Open a new file'),style:const TextStyle(color:Colors.white,fontSize:17,fontWeight:FontWeight.w800)),
-                const SizedBox(height:5),Text(t('PDF، Word، Excel و بیشتر','PDF, Word, Excel & more'),style:TextStyle(color:Colors.white.withOpacity(.65),fontSize:12)),
+                const SizedBox(height:5),Text(t('PDF، Word، Excel و بیشتر','PDF, Word, Excel & more'),style:TextStyle(color:Colors.white.withValues(alpha: .65),fontSize:12)),
               ])),const Icon(Icons.arrow_forward_rounded,color:Colors.white),
             ])))),
           const SizedBox(height:24), Row(children:[
@@ -213,7 +213,7 @@ class _DocsyHomeState extends State<DocsyHome> {
             const SizedBox(width:10),Expanded(child:statCard(t('جدولی','Sheets'),count(['xls','xlsx','csv','ods']),Icons.grid_on_rounded,const Color(0xFF35A875))),
           ]),
           const SizedBox(height:24),Center(child:Text(t('ساخته‌شده برای سادگی.','Made for clarity.'),style:theme.textTheme.labelSmall?.copyWith(color:muted))),
-        ])))),
+        ]))),
       ),
     );
   }
@@ -221,7 +221,7 @@ class _DocsyHomeState extends State<DocsyHome> {
     final c=fileColor(f.ext);
     return Material(color:Theme.of(context).cardColor,borderRadius:BorderRadius.circular(18),child:InkWell(onTap:()=>openFile(f),borderRadius:BorderRadius.circular(18),
       child:Padding(padding:const EdgeInsets.all(13),child:Row(children:[
-        Container(width:48,height:52,decoration:BoxDecoration(color:c.withOpacity(.12),borderRadius:BorderRadius.circular(14)),child:Icon(fileIcon(f.ext),color:c,size:25)),
+        Container(width:48,height:52,decoration:BoxDecoration(color:c.withValues(alpha: .12),borderRadius:BorderRadius.circular(14)),child:Icon(fileIcon(f.ext),color:c,size:25)),
         const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(f.name,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
           const SizedBox(height:5),Text(f.ext.toUpperCase(),style:TextStyle(color:muted,fontSize:11,letterSpacing:.8,fontWeight:FontWeight.w600)),
@@ -231,7 +231,7 @@ class _DocsyHomeState extends State<DocsyHome> {
   Widget emptyState() => Container(padding:const EdgeInsets.symmetric(horizontal:22,vertical:30),
     decoration:BoxDecoration(color:Theme.of(context).cardColor,borderRadius:BorderRadius.circular(22)),
     child:Column(children:[
-      Container(width:62,height:62,decoration:BoxDecoration(color:const Color(0xFFFF8A3D).withOpacity(.13),shape:BoxShape.circle),
+      Container(width:62,height:62,decoration:BoxDecoration(color:const Color(0xFFFF8A3D).withValues(alpha: .13),shape:BoxShape.circle),
         child:const Icon(Icons.folder_open_rounded,size:29,color:Color(0xFFFF8A3D))),
       const SizedBox(height:14),Text(t('هنوز فایلی اینجا نیست','Nothing here yet'),style:const TextStyle(fontWeight:FontWeight.w900,fontSize:16)),
       const SizedBox(height:7),Text(t('اولین سندت را انتخاب کن تا اینجا نمایش داده شود.','Choose your first document and it will appear here.'),
