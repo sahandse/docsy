@@ -109,6 +109,13 @@ class _DocsyHomeState extends State<DocsyHome> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(storageKey, jsonEncode(files.map((f) => f.toJson()).toList()));
   }
+
+  Future<void> removeFile(DocFile file) async {
+    setState(() => files.removeWhere((item) => item.path == file.path));
+    await saveFiles();
+    message(t('از کتابخانه حذف شد.','Removed from your library.'));
+  }
+
   void message(String text) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), behavior: SnackBarBehavior.floating));
@@ -265,7 +272,12 @@ class _DocsyHomeState extends State<DocsyHome> {
         const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(f.name,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
           const SizedBox(height:5),Text(f.ext.toUpperCase(),style:TextStyle(color:muted,fontSize:11,letterSpacing:.8,fontWeight:FontWeight.w600)),
-        ])),Icon(Icons.open_in_new_rounded,color:muted,size:19),
+        ])),
+        IconButton(
+          tooltip: t('حذف از کتابخانه', 'Remove from library'),
+          onPressed: () => removeFile(f),
+          icon: Icon(Icons.close_rounded, color: muted, size: 19),
+        ),
       ]))));
   }
   Widget emptyState() => Container(padding:const EdgeInsets.symmetric(horizontal:22,vertical:30),
