@@ -24,6 +24,8 @@ jobs:
           cache: true
       - name: Generate Android platform scaffold
         run: flutter create --platforms=android --org com.sahandse --project-name docsy .
+      - name: Set Android compile SDK
+        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
       - name: Install dependencies
         run: flutter pub get
       - name: Analyze
