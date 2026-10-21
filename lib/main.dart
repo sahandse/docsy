@@ -101,8 +101,31 @@ class _DocsyHomeState extends State<DocsyHome> {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(storageKey);
     if (raw != null) {
-      try { files = (jsonDecode(raw) as List<dynamic>).whereType<Map<String,dynamic>>().map(DocFile.fromJson).toList(); }
-      catch (_) { await prefs.remove(storageKey); }
+      try {
+        final restored = (jsonDecode(raw) as List<dynamic>)
+            .whereType<Map<String, dynamic>>()
+            .map(DocFile.fromJson)
+            .where((file) => file.path.isNotEmpty)
+            .toList();
+        // Drop stale entries rather than leaving files that can never open.
+        // The source files themselves are never deleted here.
+        files = restored.where((file) {
+          try {
+            return File(file.path).existsSync();
+          } catch (_) {
+            return false;
+          }
+        }).toList();
+        if (files.length != restored.length) {
+          await prefs.setString(
+            storageKey,
+            jsonEncode(files.map((file) => file.toJson()).toList()),
+          );
+        }
+      } catch (_) {
+        await prefs.remove(storageKey);
+        files = [];
+      }
     }
     if (mounted) setState(() => loading = false);
   }
@@ -114,6 +137,20 @@ class _DocsyHomeState extends State<DocsyHome> {
   Future<void> removeFile(DocFile file) async {
     setState(() => files.removeWhere((item) => item.path == file.path));
     await saveFiles();
+
+    // Only delete files that Docsy itself copied into its private library.
+    // Older entries may point to the user's original documents.
+    try {
+      final appDirectory = await getApplicationDocumentsDirectory();
+      final managedDirectory = p.normalize(p.join(appDirectory.path, 'documents'));
+      final candidate = p.normalize(file.path);
+      if (p.isWithin(managedDirectory, candidate) &&
+          await File(candidate).exists()) {
+        await File(candidate).delete();
+      }
+    } catch (_) {
+      // The library entry is removed even if private-file cleanup fails.
+    }
     message(t('از کتابخانه حذف شد.','Removed from your library.'));
   }
 
@@ -246,8 +283,20 @@ class _DocsyHomeState extends State<DocsyHome> {
         }
       }
       final result = await OpenFilex.open(f.path);
-      if (result.type != ResultType.done) message(t('برنامه سازگار برای بازکردن فایل پیدا نشد.','No compatible app was found to open this file.'));
-    } catch (_) { message(t('بازکردن فایل ناموفق بود.','Could not open this file.')); }
+      if (result.type != ResultType.done) {
+        final details = result.message.trim();
+        message(details.isNotEmpty
+            ? t('بازکردن فایل ممکن نشد: $details',
+                'Could not open file: $details')
+            : t('برنامه سازگار برای بازکردن این فایل پیدا نشد.',
+                'No compatible app was found to open this file.'));
+      }
+    } catch (error) {
+      message(t(
+        'بازکردن فایل ناموفق بود. فایل را بررسی کن و دوباره تلاش کن.',
+        'Could not open the file. Check the file and try again.',
+      ));
+    }
   }
   Color fileColor(String e) {
     if (e == 'pdf') return const Color(0xFFE45B55);
