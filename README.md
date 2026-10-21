@@ -37,6 +37,9 @@ This repository generates the Android platform scaffold during GitHub Actions. T
 flutter create --platforms=android --org com.sahandse --project-name docsy .
 # Ensure android/app/build.gradle.kts uses compileSdk = 36
 flutter pub get
+mkdir -p assets
+base64 --decode tooling/docsy_icon.png.base64 > assets/docsy_icon.png
+dart run flutter_launcher_icons
 flutter analyze
 flutter test
 flutter build apk --release
