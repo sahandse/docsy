@@ -70,3 +70,24 @@ jobs:
           name: docsy-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+  emulator-smoke-test:
+    needs: analyze-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: docsy-android-apk
+          path: artifacts
+      - name: Install and launch on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            adb install artifacts/app-release.apk
+            adb shell monkey -p com.sahandse.docsy 1
+            sleep 5
+            adb shell pidof com.sahandse.docsy
+
