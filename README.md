@@ -1,47 +1,52 @@
 # Docsy
 
-A minimal, bilingual (Persian/English) Flutter document hub for Android, designed around a clean black-and-white interface.
+Docsy is a minimal, bilingual (Persian/English) Flutter document library for Android. The interface uses a restrained monochrome palette with a warm orange accent.
 
-## Current scope
+## Implemented
 
-- Pick multiple documents through Android's system file picker.
-- Filter the library by PDF, Word/text, spreadsheets, and presentations.
-- Search filenames.
-- Remember a recent-file list locally.
-- Open a selected file with a compatible viewer installed on the device.
-- Light and dark themes.
-- Persian and English interface toggle.
+- Pick one or multiple supported files using Android's system file picker.
+- Search filenames and filter the library by document type.
+- Store a local recent-file list on the device (no account or cloud upload).
+- Open PDFs in the app with the embedded PDF viewer.
+- Preview TXT and CSV files in-app when they are no larger than 2 MiB.
+- Open Office and other supported formats through a compatible app installed on the device.
+- Switch between Persian/RTL and English/LTR.
+- Switch between light and dark themes.
 
-## Important format support note
+## Format support
 
-Docsy currently acts as a document library and launcher. It delegates rendering of PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, ODT/ODS/ODP and other supported files to compatible Android apps installed on the device. It does **not** yet embed a complete office rendering engine, so in-app rendering and guaranteed support for every format are not claimed.
+| Format | Current behavior |
+|---|---|
+| PDF | In-app viewer |
+| TXT, CSV | In-app text preview up to 2 MiB |
+| DOC, DOCX, XLS, XLSX, PPT, PPTX, RTF, ODT, ODS, ODP | Open with a compatible installed app |
 
-## Requirements
+Docsy does not currently include a full Office rendering/editing engine. A compatible Android app is required for Office formats; availability and rendering fidelity depend on that app.
 
-- Flutter stable (Dart SDK `>=3.4.0 <4.0.0`)
-- Android SDK and Android Studio for Android builds
+## Build and test
 
-## Run locally
+Requirements: Flutter stable, Dart SDK `>=3.4.0 <4.0.0`, and Android build tooling.
 
-    flutter pub get
-    flutter analyze
-    flutter test
-    flutter run
+```sh
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --release
+```
 
-## Build an APK
+The APK is normally generated at `build/app/outputs/flutter-apk/app-release.apk`.
 
-    flutter build apk --release
+GitHub Actions runs analysis, widget tests, and a release APK build on pushes and pull requests. When the workflow succeeds, download the `docsy-android-apk` artifact from the run's **Artifacts** section.
 
-The release APK will normally be created at `build/app/outputs/flutter-apk/app-release.apk`.
+## Release checklist
 
-## Roadmap
-
-1. Add a dedicated in-app PDF renderer and page navigation.
-2. Add safe in-app text and CSV previews.
-3. Evaluate an offline Office rendering engine for DOCX, XLSX and PPTX, including Persian typography and complex layouts.
-4. Add import/open-in integration tests and test on physical Android devices.
-5. Produce signed release builds only after device-level validation.
+- [ ] Confirm analysis, tests, and release APK build all pass in GitHub Actions.
+- [ ] Install and test the APK on a physical Android device.
+- [ ] Verify file selection, PDF scrolling/zoom, TXT/CSV preview, external Office handoff, search, filters, language, and themes.
+- [ ] Verify behavior when a remembered file has been moved or its access has expired.
+- [ ] Set the final application ID, app icon, version, and signing configuration before store distribution.
+- [ ] Test the signed release build before publishing.
 
 ## Privacy
 
-The app does not upload documents to a server. File access and opening are handled locally through Android and installed compatible apps. Recent file paths are stored locally; a saved path may become unavailable if the source file is moved or its access permission expires.
+Documents are processed locally. Docsy does not upload document contents to a server. The recent-file list stores file paths on the device; a path can stop working if a source file is moved or Android no longer grants access to it.
