@@ -165,7 +165,7 @@ class _DocsyHomeState extends State<DocsyHome> {
         type: FileType.custom,
         allowedExtensions: extensions,
         allowMultiple: true,
-        withData: true,
+        withData: false,
         withReadStream: true,
       );
       if (result == null) return;
