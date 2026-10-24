@@ -8,6 +8,16 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  test('formatFileSize formats byte counts correctly', () {
+    expect(formatFileSize(0), '');
+    expect(formatFileSize(-100), '');
+    expect(formatFileSize(500), '500 B');
+    expect(formatFileSize(1024), '1.0 KB');
+    expect(formatFileSize(1536), '1.5 KB');
+    expect(formatFileSize(1048576), '1.0 MB');
+    expect(formatFileSize(1073741824), '1.0 GB');
+  });
+
   testWidgets('Docsy home renders the core interface', (tester) async {
     await tester.pumpWidget(const DocsyApp());
     await tester.pumpAndSettle();
@@ -44,6 +54,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool('docsy_dark_theme_v1'), isTrue);
   });
+
   testWidgets('Search field and file type filters remain usable on empty library', (tester) async {
     await tester.pumpWidget(const DocsyApp());
     await tester.pumpAndSettle();
@@ -58,5 +69,4 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('هنوز فایلی اینجا نیست'), findsOneWidget);
   });
-
 }

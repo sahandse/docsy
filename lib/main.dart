@@ -72,11 +72,34 @@ class _DocsyAppState extends State<DocsyApp> {
 }
 
 class DocFile {
-  const DocFile(this.path, this.name, this.ext, this.added);
+  const DocFile(this.path, this.name, this.ext, this.added, {this.size = 0});
   final String path, name, ext;
   final int added;
-  Map<String,dynamic> toJson() => {'path':path,'name':name,'ext':ext,'added':added};
-  factory DocFile.fromJson(Map<String,dynamic> j) => DocFile(j['path'] as String? ?? '', j['name'] as String? ?? 'Document', j['ext'] as String? ?? '', j['added'] as int? ?? 0);
+  final int size;
+
+  Map<String, dynamic> toJson() => {
+        'path': path,
+        'name': name,
+        'ext': ext,
+        'added': added,
+        'size': size,
+      };
+
+  factory DocFile.fromJson(Map<String, dynamic> j) => DocFile(
+        j['path'] as String? ?? '',
+        j['name'] as String? ?? 'Document',
+        j['ext'] as String? ?? '',
+        j['added'] as int? ?? 0,
+        size: j['size'] as int? ?? 0,
+      );
+}
+
+String formatFileSize(int bytes) {
+  if (bytes <= 0) return '';
+  if (bytes < 1024) return '$bytes B';
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
 
 class DocsyHome extends StatefulWidget {
@@ -135,6 +158,30 @@ class _DocsyHomeState extends State<DocsyHome> {
   }
 
   Future<void> removeFile(DocFile file) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t('حذف از کتابخانه', 'Remove from library')),
+        content: Text(t(
+          'آیا از حذف «${file.name}» از کتابخانه اطمینان دارید؟',
+          'Are you sure you want to remove "${file.name}" from your library?',
+        )),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(t('انصراف', 'Cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(t('حذف', 'Remove')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
     setState(() => files.removeWhere((item) => item.path == file.path));
     await saveFiles();
 
@@ -203,11 +250,13 @@ class _DocsyHomeState extends State<DocsyHome> {
             continue;
           }
 
+          final fileLength = await destination.length();
           picked.add(DocFile(
             destination.path,
             name,
             p.extension(name).replaceFirst('.', '').toLowerCase(),
             DateTime.now().millisecondsSinceEpoch,
+            size: fileLength,
           ));
         } catch (error, stackTrace) {
           debugPrint('Docsy: failed to copy picked file "${file.name}": $error');
@@ -268,7 +317,13 @@ class _DocsyHomeState extends State<DocsyHome> {
         final sourceLength = await source.length();
         if (!mounted) return;
         if (sourceLength <= 2 * 1024 * 1024) {
-          final text = await source.readAsString();
+          final bytes = await source.readAsBytes();
+          String text;
+          try {
+            text = utf8.decode(bytes, allowMalformed: true);
+          } catch (_) {
+            text = String.fromCharCodes(bytes);
+          }
           if (!mounted) return;
           await showDialog<void>(
             context: context,
@@ -392,13 +447,21 @@ class _DocsyHomeState extends State<DocsyHome> {
     );
   }
   Widget documentRow(DocFile f, Color muted) {
-    final c=fileColor(f.ext);
+    final c = fileColor(f.ext);
+    var sizeText = formatFileSize(f.size);
+    if (sizeText.isEmpty && File(f.path).existsSync()) {
+      try {
+        sizeText = formatFileSize(File(f.path).lengthSync());
+      } catch (_) {}
+    }
+    final info = sizeText.isNotEmpty ? '${f.ext.toUpperCase()} • $sizeText' : f.ext.toUpperCase();
+
     return Material(color:Theme.of(context).cardColor,borderRadius:BorderRadius.circular(18),child:InkWell(onTap:()=>openFile(f),borderRadius:BorderRadius.circular(18),
       child:Padding(padding:const EdgeInsets.all(13),child:Row(children:[
         Container(width:48,height:52,decoration:BoxDecoration(color:c.withValues(alpha: .12),borderRadius:BorderRadius.circular(14)),child:Icon(fileIcon(f.ext),color:c,size:25)),
         const SizedBox(width:13),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           Text(f.name,maxLines:1,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800)),
-          const SizedBox(height:5),Text(f.ext.toUpperCase(),style:TextStyle(color:muted,fontSize:11,letterSpacing:.8,fontWeight:FontWeight.w600)),
+          const SizedBox(height:5),Text(info,style:TextStyle(color:muted,fontSize:11,letterSpacing:.8,fontWeight:FontWeight.w600)),
         ])),
         IconButton(
           tooltip: t('حذف از کتابخانه', 'Remove from library'),
@@ -427,37 +490,75 @@ class _DocsyHomeState extends State<DocsyHome> {
 
 }
 
-class PdfReaderScreen extends StatelessWidget {
+class PdfReaderScreen extends StatefulWidget {
   const PdfReaderScreen({super.key, required this.path, required this.title, required this.fa});
   final String path;
   final String title;
   final bool fa;
 
   @override
+  State<PdfReaderScreen> createState() => _PdfReaderScreenState();
+}
+
+class _PdfReaderScreenState extends State<PdfReaderScreen> {
+  final PdfViewerController _controller = PdfViewerController();
+  int _currentPage = 1;
+  int _totalPages = 0;
+
+  @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (_totalPages > 0)
+              Text(
+                widget.fa
+                    ? 'صفحه $_currentPage از $_totalPages'
+                    : 'Page $_currentPage of $_totalPages',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: dark ? Colors.white60 : Colors.black54,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+          ],
+        ),
         actions: [
           IconButton(
-            tooltip: fa ? 'بازکردن با برنامه دیگر' : 'Open with another app',
-            onPressed: () => OpenFilex.open(path),
+            tooltip: widget.fa ? 'بازکردن با برنامه دیگر' : 'Open with another app',
+            onPressed: () => OpenFilex.open(widget.path),
             icon: const Icon(Icons.open_in_new_rounded),
           ),
         ],
       ),
       body: PdfViewer.file(
-        path,
+        widget.path,
+        controller: _controller,
         params: PdfViewerParams(
           backgroundColor: dark ? const Color(0xFF111111) : const Color(0xFFF0F0EE),
+          onViewerReady: (document, controller) {
+            setState(() {
+              _totalPages = document.pages.length;
+              _currentPage = controller.pageNumber ?? 1;
+            });
+          },
+          onPageChanged: (pageNumber) {
+            if (pageNumber != null && pageNumber != _currentPage) {
+              setState(() => _currentPage = pageNumber);
+            }
+          },
           loadingBannerBuilder: (context, bytesDownloaded, totalBytes) => Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 12),
-                Text(fa ? 'در حال بارگذاری سند…' : 'Loading document…'),
+                Text(widget.fa ? 'در حال بارگذاری سند…' : 'Loading document…'),
               ],
             ),
           ),
