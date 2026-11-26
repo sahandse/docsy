@@ -22,3 +22,20 @@ jobs:
         run: cargo check --manifest-path ".dart_tool/rustina-office/${{ matrix.engine }}/crates/engine/Cargo.toml"
       - name: Test engine
         run: cargo test --manifest-path ".dart_tool/rustina-office/${{ matrix.engine }}/crates/engine/Cargo.toml" --lib
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - run: bash tooling/check_office_source.sh
+      - run: cargo test --manifest-path native/office_bridge/Cargo.toml
+      - run: cargo install cargo-ndk --locked
+      - run: cargo ndk -t arm64-v8a -p 29 -o native-output build --release --manifest-path native/office_bridge/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: office-bridge-arm64
+          path: native-output/
+          if-no-files-found: error
