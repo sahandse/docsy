@@ -1,0 +1,24 @@
+name: Office engine validation
+on:
+  push:
+    branches: [office-rust-integration]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [Write/wordcraft, Tables/gridcraft, Slides/deckcraft]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Fetch pinned upstream
+        run: bash tooling/check_office_source.sh
+      - name: Compile engine
+        run: cargo check --manifest-path ".dart_tool/rustina-office/${{ matrix.engine }}/crates/engine/Cargo.toml"
+      - name: Test engine
+        run: cargo test --manifest-path ".dart_tool/rustina-office/${{ matrix.engine }}/crates/engine/Cargo.toml" --lib
